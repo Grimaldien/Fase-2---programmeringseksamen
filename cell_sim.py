@@ -13,6 +13,8 @@ age_deaths = 0
 division_deaths = 0
 poison_deaths = 0
 total_cells = 0
+div_list = []
+
 
 
 def cell_life(cell:Cell,age_limit,division_limit):
@@ -22,15 +24,15 @@ def cell_life(cell:Cell,age_limit,division_limit):
         cell.died_by_age_limit()
         global age_deaths
         age_deaths += 1
-    elif cell.divisions() > division_limit:
+    elif cell.divisions() >= division_limit:
         cell.died_by_division_limit()
         global division_deaths
         division_deaths += 1
-    else:
-        if cell.patch().toxicity() - cell.resistance() >= random.randint(0,10):
-            cell.died_by_poisoning()
-            global poison_deaths
-            poison_deaths += 1
+    
+    elif cell.patch().toxicity() - cell.resistance() >= random.randint(0,10):
+        cell.died_by_poisoning()
+        global poison_deaths
+        poison_deaths += 1
 
 def check_for_cells(patch_list):
     '''Iterates over the entire patch list for cells. Returns true if there is a cell on the patch.'''
@@ -88,6 +90,8 @@ def spread_cells(patches,patch,row,col,divisions_probability,cd):
                 cell.divide(patches[x_r][y_r])
                 global total_cells
                 total_cells += 1
+                global div_list
+                div_list.append(cell.divisions())
                 #print(cell.generation())
 
 def initial_pop(row:int,col:int,intial_population:int,grid):
@@ -121,7 +125,7 @@ if __name__ == '__main__':
     initial_population = 2
     age_limit = 10
     division_limit = 7
-    division_prob = 0.6
+    division_prob = 0.9
     division_cd = 1
     time_limit = 100
     tick = 0
@@ -130,7 +134,7 @@ if __name__ == '__main__':
     res_list = []
     gen_res_list = []
     cell_list = []
-    div_list = []
+    max_divs = 0
     init_pop,cell_patches = initial_pop(row,col,initial_population,grid)
     vis = Visualiser(init_pop,row,col)
     
@@ -147,12 +151,13 @@ if __name__ == '__main__':
                 cell = patch.cell()
                 if cell not in cell_list:
                     cell_list.append(cell)
-                    div_list.append(cell.divisions())
-                    gen_list.append(cell.generation())
-                    res_list.append(cell.resistance())
+                    #gen_list.append(cell.generation())
+                    #res_list.append(cell.resistance())
                     gen_res_list.append((cell.generation(),cell.resistance()))
                 if total_gens <= cell.generation():
                     total_gens = cell.generation() + 1 #Gen 0 still counts as 1
+                if max_divs <= cell.divisions():
+                    max_divs = cell.divisions()
 
         vis.update()
         tick += 1
@@ -160,12 +165,13 @@ if __name__ == '__main__':
     highest_gen = highest_generation(gen_list)
             
     total_deaths = age_deaths + division_deaths + poison_deaths
-
+    
+    '''Test for gen and res lists
     print(gen_list)
     print(len(gen_list))
     print(res_list)
     print(len(res_list))
-
+    '''
     print(cell_list)
     print(len(cell_list))
 
@@ -187,7 +193,11 @@ if __name__ == '__main__':
         avg_test = res_sum/len(gen_res_list)
         print("Test avg", round(avg_test,2))
 
-    print(div_list)
+    '''Test for number of divisions '''
+    #print(div_list)
+    #print(len(div_list))
+
+    print("Max divs:",max_divs)
 
     
     print("")
