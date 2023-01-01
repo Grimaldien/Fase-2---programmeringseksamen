@@ -21,6 +21,7 @@ from __future__ import annotations # to use a class in type hints of its members
 from typing import Optional
 import numpy as np
 import random
+#import cell_sim
 from random import shuffle, choices, choice
 
 class BasePatch:
@@ -66,6 +67,10 @@ class Cell:
     self._alive = True
     self._resistance = resistance
     self._generation = 0
+    self._parent = parent
+    self._death_by_age = False
+    self._death_by_division = False
+    self._death_by_poisoning = False
     # inform patch that this cell is on it
     patch.put_cell(self)
   
@@ -76,26 +81,33 @@ class Cell:
   def died_by_age_limit(self:Cell)->bool:
     """Checks if this cell died because it exceeded the age limit."""
 
-    assert self.is_alive(), "the cell must be alive."
+    #assert self.is_alive(), "the cell must be alive."
     self._alive = False
+    self._death_by_age = True
     # removes the cell from this cell's patch
     self._patch.remove_cell()
+    return self._death_by_age
+    
   
   def died_by_division_limit(self:Cell)->bool:
     """Checks if this cell died because it exceeded the division limit."""
 
-    assert self.is_alive(), "the cell must be alive."
+    #assert self.is_alive(), "the cell must be alive."
     self._alive = False
+    self._death_by_division = True
     # removes the cell from this cell's patch
     self._patch.remove_cell()
+    return self._death_by_division
 
   def died_by_poisoning(self:Cell)->bool:
     """Checks if this cell died because of the toxicity in its patch."""
 
-    assert self.is_alive(), "the cell must be alive."
+    #assert self.is_alive(), "the cell must be alive."
     self._alive = False
+    self._death_by_poisoning = True
     # removes the cell from this cell's patch
     self._patch.remove_cell()
+    return self._death_by_poisoning
 
   def divide(self:Cell,patch:CellPatch)->bool:
     """This cell attempts to divide using the given patch for the new cell. Returns True if the division is successful, False otherwise.
@@ -105,7 +117,7 @@ class Cell:
     self._last_division = 0 # reset the counter from the last division
     self._divisions = self._divisions + 1 # updates the division count
     resistance = choice([self._resistance + res for res in [-2,-1,0,1,2] if 0 <= self._resistance + res <=9])
-    return Cell(patch,resistance)
+    return Cell(patch,resistance,self)
 
   def divisions(self:Cell)->int:
     """Returns number of division performed by this cell."""
@@ -113,6 +125,10 @@ class Cell:
 
   def generation(self:Cell)->int:
     """Returns the generation of this cell (generations are counted starting from 0)."""
+    if self._parent == None:
+      self._generation = 0
+    else:
+      self._generation = self._parent.generation() + 1
     return self._generation
   
   def is_alive(self:Cell)->bool:
@@ -121,7 +137,7 @@ class Cell:
   
   def parent(self:Cell)->Optional[Cell]:
     """Returns the parent of this cell, None this cell belongs to the initial generation."""
-    #how??
+    return self._parent
 
   def patch(self:Cell)->CellPatch:
     """Returns the patch of this cell. If the cell is dead, it returns the patch where the cell died."""
